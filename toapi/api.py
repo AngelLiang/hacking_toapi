@@ -1,3 +1,8 @@
+"""
+Api is the whole program entrance which connects items, cache, storage, 
+handles the request from user and fetches html from source sites. 
+"""
+
 import traceback
 from collections import defaultdict
 from time import time
@@ -15,6 +20,14 @@ from toapi.log import logger
 class Api:
 
     def __init__(self, site: str = '', browser: str = None) -> None:
+        """
+        app: Flask
+        browser: 浏览器
+        _site: 
+        _routes:
+        _cache: 用于缓存html解析成json的结果
+        _storage: 用于缓存url请求获取到的html
+        """
         self.app: Flask = Flask(__name__)
         self.browser = browser and HTMLFetcher(browser=browser)
         self._site = site.strip('/')
@@ -33,7 +46,7 @@ class Api:
                 full_path = request.full_path.strip('?')
                 results = self.parse_url(full_path)
                 end_time = time()
-                time_usage = end_time - start_time
+                time_usage = end_time - start_time   # 用时
                 res = jsonify(results)
                 logger.info(Fore.GREEN, 'Received',
                             '%s %s 200 %.2fms' % (request.url, len(res.response), time_usage * 1000))
@@ -68,6 +81,7 @@ class Api:
             logger.info(Fore.YELLOW, 'Cache', f'Get<{full_path}>')
             return results
 
+        # 遍历 self._routes 并生成结果
         results = {}
         for source_format, target_format, item in self._routes:
             parsed_path = self.convert_string(full_path, source_format, target_format)
@@ -78,7 +92,7 @@ class Api:
                 logger.info(Fore.CYAN, 'Parsed', f'Item<{item.__name__}[{len(result)}]>')
                 results.update({item.__name__: result})
 
-        self._cache[full_path] = results
+        self._cache[full_path] = results    # 缓存json
         logger.info(Fore.YELLOW, 'Cache', f'Set<{full_path}>')
 
         return results
@@ -88,20 +102,25 @@ class Api:
         if html is not None:
             logger.info(Fore.BLUE, 'Storage', f'Get<{url}>')
             return html
+        # 获取资源
         if self.browser is not None:
             html = self.browser.get(url)
         else:
-            r = requests.get(url)
+            r = requests.get(url)   # get
             content = r.content
             charset = cchardet.detect(content)
             html = content.decode(charset['encoding'] or 'utf-8')
         logger.info(Fore.GREEN, 'Sent', f'{url} {len(html)}')
-        self._storage[url] = html
+        self._storage[url] = html   # 缓存html
         logger.info(Fore.BLUE, 'Storage', f'Set<{url}>')
         return html
 
     def route(self, source_format: str, target_format: str) -> callable:
-
+        """
+        路由
+        :param source_format: str，用户看到的路径
+        :param target_format: str, 需要请求的路径
+        """
         def fn(item):
             self._routes.append([source_format, target_format, item])
             logger.info(Fore.GREEN, 'Register', f'<{item.__name__}: {source_format} {target_format}>')

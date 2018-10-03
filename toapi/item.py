@@ -1,3 +1,27 @@
+"""
+Item is the key to the whole system which determine what is the result and where is the result. 
+
+```
+from toapi import XPath, Item
+
+class MovieList(Item):
+    __base_url__ = 'http://www.dy2018.com'
+
+    url = XPath('//b//a[@class="ulink"]/@href')
+    title = XPath('//b//a[@class="ulink"]/text()')
+
+    class Meta:
+        source = XPath('//table[@class="tbspan"]')
+        route = {'/movies/?page=1': '/html/gndy/dyzz/',
+                 '/movies/?page=:page': '/html/gndy/dyzz/index_:page.html',
+                 '/movies/': '/html/gndy/dyzz/'}
+```
+
+When you visit http://127.0.0.1:/movies/?page=2, 
+You could get the item from http://www.dy2018.com/html/gndy/dyzz/index_2.html
+
+"""
+
 from collections import OrderedDict
 
 from htmlparsing import Selector, HTMLParsing
